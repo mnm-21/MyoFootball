@@ -1,13 +1,13 @@
 from myosuite.utils import gym
-
-register = gym.register
-register(id='Football-v0',
-    entry_point='myosuite.envs.myo.myobase.football_v0:FootballEnvV0',
-    max_episode_steps=1000, 
-    kwargs={
-        'model_path': "/Users/mayankchandak/miniconda3/envs/MyoSuite/lib/python3.8/site-packages/myosuite/simhive/myo_sim/leg/myolegs_football.xml", 
-    }
-)
+# Add the following lines to /Users/mayankchandak/miniconda3/envs/MyoSuite/lib/python3.8/site-packages/myosuite/envs/myo/myobase/__init__.py file to register env
+# register = gym.register
+# register(id='Football-v0',
+#     entry_point='myosuite.envs.myo.myobase.football_v0:FootballEnvV0',
+#     max_episode_steps=1000, 
+#     kwargs={
+#         'model_path': "/Users/mayankchandak/miniconda3/envs/MyoSuite/lib/python3.8/site-packages/myosuite/simhive/myo_sim/leg/myolegs_football.xml", 
+#     }
+# )
 
 import time
 
