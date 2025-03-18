@@ -39,18 +39,7 @@ class FootballEnvV0(BaseV0):
 
     def __init__(self, model_path, obsd_model_path=None, seed=None, **kwargs):
 
-        # EzPickle.__init__(**locals()) is capturing the input dictionary of the init method of this class.
-        # In order to successfully capture all arguments we need to call gym.utils.EzPickle.__init__(**locals())
-        # at the leaf level, when we do inheritance like we do here.
-        # kwargs is needed at the top level to account for injection of __class__ keyword.
-        # Also see: https://github.com/openai/gym/pull/1497
         gym.utils.EzPickle.__init__(self, model_path, obsd_model_path, seed, **kwargs)
-
-        # This two step construction is required for pickling to work correctly. All arguments to all __init__
-        # calls must be pickle friendly. Things like sim / sim_obsd are NOT pickle friendly. Therefore we
-        # first construct the inheritance chain, which is just __init__ calls all the way down, with env_base
-        # creating the sim / sim_obsd instances. Next we run through "setup"  which relies on sim / sim_obsd
-        # created in __init__ to complete the setup.
         super().__init__(model_path=model_path, obsd_model_path=obsd_model_path, seed=seed, env_credits=self.MYO_CREDIT)
         self._setup(**kwargs)
 
@@ -122,10 +111,9 @@ class FootballEnvV0(BaseV0):
             ('cyclic_hip',  cyclic_hip),                      
             ('ref_rot',  ref_rot),
             ('joint_angle_rew', joint_angle_rew),
-            ('act_mag', act_mag),
-            # Must keys
-            ('sparse',  vel_reward),
-            ('solved',    vel_reward >= 1.0),
+            ('act_mag', act_mag), # not used 
+            ('sparse',  vel_reward), # not used
+            ('solved',    vel_reward >= 1.0), # not used 
             ('done',  self._get_done()),
             ('in_goal', self._get_goal_reward()),
             ('kick', self._get_kick_reward()),
@@ -234,7 +222,7 @@ class FootballEnvV0(BaseV0):
 
         force_alignment = np.clip(force_alignment, -1, 1)  # Ensure valid range
 
-        # --- Compute Final Reward ---
+        # Compute Final Reward 
         if total_force_mag < 300:
             force_reward = (total_force_mag / 300) ** 2  # Quadratic increase up to 300N
         else:
@@ -359,14 +347,6 @@ class FootballEnvV0(BaseV0):
         foot_id_r = self.sim.model.body_name2id('talus_r')
         pelvis = self.sim.model.body_name2id('pelvis')
         return np.array([self.sim.data.body_xpos[foot_id_l]-self.sim.data.body_xpos[pelvis], self.sim.data.body_xpos[foot_id_r]-self.sim.data.body_xpos[pelvis]])
-
-    # def _get_vel_reward(self):
-    #     """
-    #     Gaussian that incentivizes a walking velocity. Going
-    #     over only achieves flat rewards.
-    #     """
-    #     vel = self._get_com_velocity()
-    #     return np.exp(-np.square(self.target_y_vel - vel[1])) + np.exp(-np.square(self.target_x_vel - vel[0]))
     
     def _get_vel_reward(self):
         """
@@ -382,7 +362,6 @@ class FootballEnvV0(BaseV0):
 
         com_pos = self._get_com()[:2]  
 
-        #  direction to football
         dir_to_ball = football_pos - com_pos
         dir_to_ball /= np.linalg.norm(dir_to_ball) + 1e-6  
 
@@ -393,7 +372,7 @@ class FootballEnvV0(BaseV0):
         # Transform alignment to a positive reward (range [0, 4])
         alignment_reward = (alignment + 1) ** 2
 
-        # --- Speed penalty (optional) ---
+        # Speed penalty  (promote stable movement)
         target_speed = np.linalg.norm([self.target_x_vel, self.target_y_vel])
         speed_penalty = np.exp(-0.5 * np.square(target_speed - speed))  
 
@@ -416,12 +395,12 @@ class FootballEnvV0(BaseV0):
         football_id = self.sim.model.body_name2id("football")
         football_pos = self.sim.data.body_xpos[football_id][:3]
 
-        # --- Yaw Alignment ---
+        # Yaw Alignment
         dir_to_ball_xy = football_pos[:2] - com_pos[:2]
         dir_to_ball_xy /= np.linalg.norm(dir_to_ball_xy) + 1e-6  # Normalize
         target_yaw = np.arctan2(dir_to_ball_xy[1], dir_to_ball_xy[0])
 
-        # --- Upright Posture ---
+        # Upright Posture
         target_pitch = 0  # No forward/backward lean
         target_roll = 0   # No side-to-side tilt
 
@@ -433,7 +412,7 @@ class FootballEnvV0(BaseV0):
         cos_theta = np.clip(np.dot(current_rot, target_rot), -1.0, 1.0) 
         full_angle = 2 * np.arccos(cos_theta)  # Angular deviation in radians
 
-        # --- Posture Penalty ---
+        # Posture Penalty 
         current_euler = R.from_quat(current_rot[[1,2,3,0]]).as_euler('ZYX')  # [yaw, pitch, roll]
         pitch_penalty = np.exp(-2 * abs(current_euler[1]))  # Allow slight pitch tilts
         roll_penalty = np.exp(-2 * abs(current_euler[2]))   # Allow slight roll tilts
@@ -445,25 +424,10 @@ class FootballEnvV0(BaseV0):
             return 0.5 * yaw_reward + 0.5 * posture_reward 
         else:
             return np.exp(-5 * (full_angle - ANGLE_THRESH))   
-
-    # def _get_ref_rotation_rew(self):
-    #     """
-    #     Incentivize staying close to the initial reference orientation up to a certain threshold.
-    #     """
-    #     target_rot = [self.target_rot if self.target_rot is not None else self.init_qpos[3:7]][0]
-    #     return np.exp(-np.linalg.norm(5.0 * (self.sim.data.qpos[3:7] - target_rot)))
     
     def _get_torso_angle(self):
         body_id = self.sim.model.body_name2id('torso')
         return self.sim.data.body_xquat[body_id]
-
-    # def _get_com_velocity(self):
-    #     """
-    #     Compute the center of mass velocity of the model.
-    #     """
-    #     mass = np.expand_dims(self.sim.model.body_mass, -1)
-    #     cvel = - self.sim.data.cvel
-    #     return (np.sum(mass * cvel, 0) / np.sum(mass))[3:5]
 
     def _get_com_velocity(self):
         """
@@ -483,20 +447,12 @@ class FootballEnvV0(BaseV0):
         """
         return self._get_com()[2]
 
-    # def _get_com(self):
-    #     """
-    #     Compute the center of mass of the robot.
-    #     """
-    #     mass = np.expand_dims(self.sim.model.body_mass, -1)
-    #     com =  self.sim.data.xipos
-    #     return (np.sum(mass * com, 0) / np.sum(mass))
-
     def _get_com(self):
         """
         Compute the center of mass of the robot. Excluding the football and goalpost.
         """
-        mass = np.expand_dims(self.sim.model.body_mass.copy(), -1)  # Shape: (num_bodies, 1)
-        com = self.sim.data.xipos.copy()  # Shape: (num_bodies, 3)
+        mass = np.expand_dims(self.sim.model.body_mass.copy(), -1) 
+        com = self.sim.data.xipos.copy()  
 
         # Exclude football and goalpost by setting their mass to zero
         football_id = self.sim.model.body_name2id("football")
