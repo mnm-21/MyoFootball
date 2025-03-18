@@ -7,7 +7,7 @@ Consists of a Musculoskeletal from Myosuite(myolegs.xml), a football and a goalp
 - **vel_reward (5.0)** – Encourages the agent to move efficiently towards the ball.  
 - **done (-100.0)** – Penalizes the agent when an episode ends unsuccessfully due to falling.  
 - **cyclic_hip (-8.0)** – Penalizes unnatural gait .  
-- **ref_rot (10.0)** – Rewards the agent for maintaining rotation in the ball direction.  
+- **ref_rot (10.0)** – Rewards the agent for maintaining orientation in the ball direction.  
 - **joint_angle_rew (5.0)** – Encourages maintaining optimal joint angles for stable movement.  
 - **in_goal (200.0)** – Large reward for successfully getting the ball into the goal.  
 - **kick (20.0)** – Rewards the agent for making successful contact with the ball.  
