@@ -1,6 +1,6 @@
 # MyoFootball
 This repository contains a **custom football environment** built using **MyoSuite** and **MuJoCo**. 
-  
+The final result after tuning can be seen here : [video(1e7 steps)](https://drive.google.com/file/d/13Cw54GuumlF-idumeGR-hTw_tc2lcLd1/view?usp=sharing) . (it's uploaded in 1080p)
 ## License and Acknowledgments
 
 This project uses **MuJoCo** and **MyoSuite**, which are licensed under the following terms:
